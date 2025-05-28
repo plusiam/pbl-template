@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인터랙티브 PBL 단원 설계 템플릿 v3.2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .activity-list .draggable-item { cursor: move; }
+        .activity-list .draggable-item.dragging { opacity: 0.5; background: #cde4ff; }
+        .rubric-table input, .rubric-table textarea { width: 100%; border: 1px dashed transparent; padding: 4px; transition: border 0.2s; background-color: transparent; }
+        .rubric-table input:focus, .rubric-table textarea:focus { border-color: #3b82f6; outline: none; background-color: #eff6ff; }
+        .delete-btn { opacity: 0.2; transition: opacity 0.2s; }
+        tr:hover .delete-btn, th:hover .delete-btn { opacity: 1; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body * { visibility: hidden; }
+            .printable-area, .printable-area * { visibility: visible; }
+            .printable-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 1rem; }
+            .printable-area h3, .printable-area h4, .printable-area table, .printable-area img { page-break-inside: avoid; }
+            .printable-area table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            .printable-area th, .printable-area td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+            .printable-area th { background-color: #f2f2f2; }
+            .printable-area .whitespace-pre-wrap { white-space: pre-wrap; word-wrap: break-word; }
+            .printable-area img { max-width: 100%; height: auto; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-4 sm:p-6 lg:p-8">
+    <div class="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6 sm:p-8">
+        
+        <header class="mb-6 no-print">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">📘 인터랙티브 PBL 단원 설계 템플릿 v3.2</h1>
+            <p class="text-gray-500 mt-1">5단계에 따라 프로젝트를 체계적으로 설계하고, 결과를 인쇄하거나 PDF로 저장하세요.</p>
+        </header>
+
+        <div class="border-b border-gray-200 mb-6 no-print">
+            <nav id="tab-buttons" class="flex flex-wrap -mb-px" aria-label="Tabs"></nav>
+        </div>
+
+        <form id="pbl-form" onsubmit="return false;">
+            <div id="tab-contents"></div>
+        </form>
+
+        <div class="mt-8 flex flex-wrap gap-3 no-print">
+            <button type="button" id="generate-summary" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow">📊 결과 종합하기</button>
+            <button type="button" id="print-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow">🖨️ 인쇄하기 (PDF 저장)</button>
+            <button type="button" id="reset-button" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow">🔄 초기화</button>
+        </div>
+
+        <div id="summary-output" class="printable-area mt-10 border-t pt-6">
+             <div class="text-center text-gray-400"><p>'결과 종합하기' 버튼을 클릭하면 이곳에 설계 내용이 정리되어 나타납니다.</p></div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const steps = [
+            { id: "step1", title: "1단계: 주제 선정" },
+            { id: "step2", title: "2단계: 프로젝트 가이드맵" },
+            { id: "step3", title: "3단계: 탐구 질문 설계" },
+            { id: "step4", title: "4단계: 활동-평가 통합 설계" },
+            { id: "step5", title: "5단계: 피드백 루브릭" }
+        ];
+
+        const tabButtonsContainer = document.getElementById('tab-buttons');
+        const tabContentsContainer = document.getElementById('tab-contents');
+        let activityCounter = 0;
+
+        function initializeApp() {
+            // 모든 내용을 한번에 생성하여 안정성 확보
+            tabButtonsContainer.innerHTML = '';
+            tabContentsContainer.innerHTML = '';
+
+            steps.forEach((step, index) => {
+                // 탭 버튼 생성
+                const button = document.createElement('button');
+                button.setAttribute('role', 'tab');
+                button.dataset.tab = step.id;
+                button.className = `whitespace-nowrap flex items-center gap-2 p-4 border-b-2 font-medium text-sm transition-colors duration-200 ${index === 0 ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
+                button.innerHTML = `<span>${step.title}</span>`;
+                tabButtonsContainer.appendChild(button);
+
+                // 탭 컨텐츠 생성
+                const contentDiv = document.createElement('div');
+                contentDiv.id = step.id;
+                contentDiv.setAttribute('role', 'tabpanel');
+                if (index !== 0) contentDiv.classList.add('hidden');
+                
+                let html = '';
+                switch (step.id) {
+                    case 'step1':
+                        html = `<div class="space-y-8"><div><h4 class="text-lg font-semibold text-gray-700 mb-2">1. 교과별 성취기준</h4><textarea id="s1-achievement-standards" class="w-full p-3 border border-gray-300 rounded-lg" rows="4" placeholder="예) [6국01-01] 관심 있는 주제에 대해 질문하고 답하며 대화한다."></textarea></div><div><h4 class="text-lg font-semibold text-gray-700 mb-2">2. 프로젝트 목적 설정</h4><div class="space-y-4"><div><label for="s1-goal-q1" class="block text-sm font-medium text-gray-600 mb-1">학생들이 무엇을 이해하였으면 하는지?</label><textarea id="s1-goal-q1" class="w-full p-3 border border-gray-300 rounded-lg" rows="3"></textarea></div><div><label for="s1-goal-q2" class="block text-sm font-medium text-gray-600 mb-1">왜 그것이 중요한지?</label><textarea id="s1-goal-q2" class="w-full p-3 border border-gray-300 rounded-lg" rows="3"></textarea></div><div><label for="s1-goal-q3" class="block text-sm font-medium text-gray-600 mb-1">학생들의 이해를 어떻게 확인할지?</label><textarea id="s1-goal-q3" class="w-full p-3 border border-gray-300 rounded-lg" rows="3"></textarea></div></div></div><div><h4 class="text-lg font-semibold text-gray-700 mb-2">3. 브레인스토밍 자료</h4><input type="file" id="brainstorm-image-input" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"><p class="text-xs text-gray-500 mt-2">※ 파일은 서버에 저장되지 않으며, 페이지를 새로고침하면 사라집니다.</p><img id="brainstorm-image-preview" class="hidden mt-4 max-w-full md:max-w-md rounded-lg shadow-md"></div></div>`;
+                        break;
+                    case 'step2':
+                        html = `<label class="block text-lg font-semibold text-gray-700 mb-2">2단계: 프로젝트 가이드맵</label><p class="text-gray-500 mb-4">꼭 알아야 할 것과 알고 싶은 것, 학습 자원 구성, 정보 입수 및 표현 활동 아이디어를 정리해주세요.</p><textarea name="step2" rows="12" class="w-full p-3 border border-gray-300 rounded-lg"></textarea>`;
+                        break;
+                    case 'step3':
+                        html = `<label class="block text-lg font-semibold text-gray-700 mb-2">3단계: 탐구 질문 설계</label><p class="text-gray-500 mb-4">핵심/추진/지원 질문 계층화, 좋은 질문 요건 점검, 최종 결과물 포함 여부 등을 설계해주세요.</p><textarea name="step3" rows="12" class="w-full p-3 border border-gray-300 rounded-lg"></textarea>`;
+                        break;
+                    case 'step4':
+                        html = `<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-700">활동-평가 통합 설계</h3><button type="button" class="add-phase-button bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm">+ 프로젝트 단계 추가</button></div><div id="step4-container" class="space-y-6"></div>`;
+                        break;
+                    case 'step5':
+                        html = `<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-700">분석적 피드백 루브릭 설계</h3><div class="flex gap-2"><button type="button" id="add-rubric-criterion" class="bg-blue-500 text-white font-bold py-2 px-3 rounded-lg text-sm">+ 평가 기준(행) 추가</button><button type="button" id="add-rubric-level" class="bg-green-500 text-white font-bold py-2 px-3 rounded-lg text-sm">+ 성취 수준(열) 추가</button></div></div><div id="step5-container" class="overflow-x-auto"></div>`;
+                        break;
+                }
+                contentDiv.innerHTML = html;
+                tabContentsContainer.appendChild(contentDiv);
+            });
+            
+            // 루브릭은 DOM에 추가된 후 초기화
+            initializeRubric();
+        }
+        
+        initializeApp();
+
+        // 탭 스위칭 로직
+        tabButtonsContainer.addEventListener('click', e => {
+            const tabButton = e.target.closest('button[role="tab"]');
+            if (!tabButton) return;
+            document.querySelectorAll('#tab-buttons button').forEach(t => t.className = 'whitespace-nowrap flex items-center gap-2 p-4 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300');
+            tabButton.className = 'whitespace-nowrap flex items-center gap-2 p-4 border-b-2 font-medium text-sm transition-colors duration-200 border-blue-600 text-blue-600';
+            document.querySelectorAll('#tab-contents [role="tabpanel"]').forEach(p => p.classList.add('hidden'));
+            document.getElementById(tabButton.dataset.tab).classList.remove('hidden');
+        });
+
+        // 나머지 이벤트 리스너들 (이벤트 위임 사용)
+        tabContentsContainer.addEventListener('change', e => {
+            if (e.target.id === 'brainstorm-image-input' && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const preview = document.getElementById('brainstorm-image-preview');
+                    preview.src = event.target.result;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        tabContentsContainer.addEventListener('click', function(e) {
+            // Step 4
+            if (e.target.classList.contains('add-phase-button')) addPhase();
+            if (e.target.classList.contains('remove-phase-button')) e.target.closest('.phase-block').remove();
+            if (e.target.classList.contains('add-activity-button')) addActivity(e.target);
+            if (e.target.classList.contains('remove-activity-button')) e.target.closest('.draggable-item').remove();
+            // Step 5
+            if (e.target.id === 'add-rubric-criterion') addRubricCriterion();
+            if (e.target.id === 'add-rubric-level') addRubricLevel();
+            if (e.target.classList.contains('delete-rubric-row')) e.target.closest('tr').remove();
+            if (e.target.classList.contains('delete-rubric-col')) deleteRubricColumn(e.target.closest('th'));
+        });
+        
+        function addPhase() { const container = document.getElementById('step4-container'); const newPhase = document.createElement('div'); newPhase.className = 'phase-block border border-gray-300 rounded-lg p-4 bg-gray-50'; newPhase.innerHTML = `<div class="flex justify-between items-center mb-3"><input type="text" placeholder="프로젝트 단계명 입력" class="phase-title-input text-lg font-bold border-b-2 flex-grow bg-transparent"><button type="button" class="remove-phase-button text-red-500 font-bold text-xl">&times;</button></div><div class="activity-list space-y-2"></div><button type="button" class="add-activity-button mt-3 bg-green-500 text-white py-1 px-3 rounded text-sm">+ 활동 추가</button>`; container.appendChild(newPhase);}
+        function addActivity(button) { const list = button.previousElementSibling; const newActivity = document.createElement('div'); newActivity.className = 'draggable-item flex items-start gap-2 p-2 bg-white border rounded-md'; newActivity.setAttribute('draggable', 'true'); newActivity.id = `activity-${activityCounter++}`; newActivity.innerHTML = `<span class="drag-handle text-gray-400 pt-2 cursor-move">⠿</span><div class="flex-grow grid grid-cols-1 md:grid-cols-10 gap-2"><textarea placeholder="학습차시" rows="2" class="w-full p-2 border rounded-md text-sm md:col-span-2"></textarea><textarea placeholder="활동 내용" rows="2" class="w-full p-2 border rounded-md text-sm md:col-span-6"></textarea><textarea placeholder="비고" rows="2" class="w-full p-2 border rounded-md text-sm md:col-span-2"></textarea></div><button type="button" class="remove-activity-button text-gray-400 font-bold self-center text-lg">&times;</button>`; list.appendChild(newActivity);}
+        
+        let draggedItem = null; tabContentsContainer.addEventListener('dragstart', (e) => { if (e.target.classList.contains('draggable-item')) { draggedItem = e.target; setTimeout(()=>e.target.classList.add('dragging'),0); } }); tabContentsContainer.addEventListener('dragend', () => { if(draggedItem) { draggedItem.classList.remove('dragging'); draggedItem = null; } }); tabContentsContainer.addEventListener('dragover', (e) => { e.preventDefault(); const container = e.target.closest('.activity-list'); if (container && draggedItem) { const after = getDragAfterElement(container, e.clientY); if (!after) container.appendChild(draggedItem); else container.insertBefore(draggedItem, after); } }); function getDragAfterElement(c, y) { const draggables = [...c.querySelectorAll('.draggable-item:not(.dragging)')]; return draggables.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) return { offset, element: child }; else return closest; }, { offset: Number.NEGATIVE_INFINITY }).element; }
+
+        function initializeRubric() { const container = document.getElementById('step5-container'); container.innerHTML = `<table class="rubric-table w-full border-collapse"><thead><tr class="bg-gray-100"><th class="border p-1 w-1/4"><input value="평가 기준" class="font-bold text-center"></th></tr></thead><tbody></tbody></table>`; addRubricLevel('우수'); addRubricLevel('보통'); addRubricLevel('개선 필요'); addRubricCriterion('내용의 명확성'); addRubricCriterion('창의성'); }
+        function addRubricCriterion(name = '새 평가 기준') { const table = document.querySelector('#step5-container .rubric-table'); const colCount = table.querySelector('thead tr').children.length; const newRow = table.querySelector('tbody').insertRow(); let cells = `<td class="border p-1"><div class="flex items-center"><input type="text" value="${name}" class="font-bold flex-grow"><button class="delete-rubric-row delete-btn text-red-500 font-bold px-2">&times;</button></div></td>`; for (let i = 1; i < colCount; i++) { cells += `<td class="border p-1"><textarea rows="3" class="text-sm w-full h-full"></textarea></td>`; } newRow.innerHTML = cells; }
+        function addRubricLevel(name = '새 수준') { const table = document.querySelector('#step5-container .rubric-table'); const headerRow = table.querySelector('thead tr'); const newTh = document.createElement('th'); newTh.className = 'border p-1'; newTh.innerHTML = `<div class="flex items-center"><input type="text" value="${name}" class="font-bold text-center flex-grow"><button class="delete-rubric-col delete-btn text-red-500 font-bold px-2">&times;</button></div>`; headerRow.appendChild(newTh); table.querySelectorAll('tbody tr').forEach(row => { const newCell = row.insertCell(); newCell.className = 'border p-1'; newCell.innerHTML = `<textarea rows="3" class="text-sm w-full h-full"></textarea>`; }); const colWidth = 100 / headerRow.children.length; table.querySelectorAll('th').forEach(cell => cell.style.width = `${colWidth}%`); }
+        function deleteRubricColumn(th) { const colIndex = [...th.parentElement.children].indexOf(th); const table = th.closest('.rubric-table'); table.querySelectorAll('tr').forEach(row => { if(row.children[colIndex]) row.children[colIndex].remove(); }); const headerRow = table.querySelector('thead tr'); const colWidth = headerRow.children.length > 0 ? 100 / headerRow.children.length : 100; table.querySelectorAll('th').forEach(cell => cell.style.width = `${colWidth}%`);}
+
+        document.getElementById('generate-summary').addEventListener('click', () => {
+            const summaryOutput = document.getElementById('summary-output');
+            summaryOutput.innerHTML = '<h2 class="text-2xl font-bold text-center mb-6 no-print">PBL 단원 설계 최종 결과</h2>';
+            let finalContent = '';
+            steps.forEach(step => {
+                let stepContent = '';
+                const stepEl = document.getElementById(step.id);
+                if(!stepEl || stepEl.innerHTML.trim() === '') return;
+
+                if (step.id === 'step1') {
+                    const standards = document.getElementById('s1-achievement-standards').value.trim();
+                    const goal1 = document.getElementById('s1-goal-q1').value.trim();
+                    const goal2 = document.getElementById('s1-goal-q2').value.trim();
+                    const goal3 = document.getElementById('s1-goal-q3').value.trim();
+                    const imagePreview = document.getElementById('brainstorm-image-preview');
+                    if (standards) stepContent += `<div><h4 class="text-lg font-semibold text-gray-800 mb-2">교과별 성취기준</h4><p class="text-gray-800 whitespace-pre-wrap bg-gray-50 p-4 rounded-md">${standards}</p></div>`;
+                    if (goal1 || goal2 || goal3) stepContent += `<div class="mt-4"><h4 class="text-lg font-semibold text-gray-800 mb-2">프로젝트 목적 설정</h4><div class="space-y-2 pl-4 border-l-4 border-gray-200">${goal1 ? `<p><strong>- 학생들이 무엇을 이해하였으면 하는지:</strong><br>${goal1}</p>` : ''}${goal2 ? `<p><strong>- 왜 그것이 중요한지:</strong><br>${goal2}</p>` : ''}${goal3 ? `<p><strong>- 학생들의 이해를 어떻게 확인할지:</strong><br>${goal3}</p>` : ''}</div></div>`;
+                    if (imagePreview && imagePreview.src && !imagePreview.classList.contains('hidden')) stepContent += `<div class="mt-4"><h4 class="text-lg font-semibold text-gray-800 mb-2">브레인스토밍 자료</h4><img src="${imagePreview.src}" class="max-w-full md:max-w-lg rounded-lg shadow-md"></div>`;
+                } else if (step.id === 'step4') {
+                    document.querySelectorAll('#step4-container .phase-block').forEach(block => { /* ... */ });
+                } else if (step.id === 'step5') {
+                    const rubricTable = document.querySelector('#step5-container .rubric-table');
+                    if (rubricTable) { stepContent = `<table>${rubricTable.innerHTML}</table>`.replace(/<input value="([^"]*)"[^>]*>/g, '$1').replace(/<textarea[^>]*>([^<]*)<\/textarea>/g, '$1').replace(/<button[^>]*>.*?<\/button>/g, ''); }
+                } else {
+                    const textarea = stepEl.querySelector('textarea');
+                    if (textarea && textarea.value.trim() !== '') stepContent = `<p class="text-gray-800 whitespace-pre-wrap bg-gray-50 p-4 rounded-md">${textarea.value}</p>`;
+                }
+
+                if (stepContent.trim() !== '') finalContent += `<div class="mb-6"><h3 class="text-xl font-semibold text-blue-700 border-b-2 pb-2 mb-3">${step.title}</h3>${stepContent}</div>`;
+            });
+            summaryOutput.innerHTML += finalContent || `<div class="text-center text-gray-400"><p>입력된 내용이 없습니다.</p></div>`;
+            if (finalContent) summaryOutput.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        document.getElementById('print-button').addEventListener('click', () => { window.print(); });
+        document.getElementById('reset-button').addEventListener('click', () => { if (confirm('정말로 모든 입력 내용을 지우시겠습니까?')) { initializeApp(); document.getElementById('summary-output').innerHTML = `<div class="text-center text-gray-400"><p>'결과 종합하기' 버튼을 클릭하면 이곳에 설계 내용이 정리되어 나타납니다.</p></div>`; } });
+    });
+    </script>
+</body>
+</html>
