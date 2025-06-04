@@ -181,7 +181,20 @@
                     if (goal1 || goal2 || goal3) stepContent += `<div class="mt-4"><h4 class="text-lg font-semibold text-gray-800 mb-2">프로젝트 목적 설정</h4><div class="space-y-2 pl-4 border-l-4 border-gray-200">${goal1 ? `<p><strong>- 학생들이 무엇을 이해하였으면 하는지:</strong><br>${goal1}</p>` : ''}${goal2 ? `<p><strong>- 왜 그것이 중요한지:</strong><br>${goal2}</p>` : ''}${goal3 ? `<p><strong>- 학생들의 이해를 어떻게 확인할지:</strong><br>${goal3}</p>` : ''}</div></div>`;
                     if (imagePreview && imagePreview.src && !imagePreview.classList.contains('hidden')) stepContent += `<div class="mt-4"><h4 class="text-lg font-semibold text-gray-800 mb-2">브레인스토밍 자료</h4><img src="${imagePreview.src}" class="max-w-full md:max-w-lg rounded-lg shadow-md"></div>`;
                 } else if (step.id === 'step4') {
-                    document.querySelectorAll('#step4-container .phase-block').forEach(block => { /* ... */ });
+                    document.querySelectorAll('#step4-container .phase-block').forEach(block => {
+                        const phaseTitle = block.querySelector('.phase-title-input')?.value.trim() || '';
+                        let rows = '';
+                        block.querySelectorAll('.activity-list .draggable-item').forEach(item => {
+                            const t = item.querySelectorAll('textarea');
+                            const lesson = t[0]?.value.trim() || '';
+                            const activity = t[1]?.value.trim() || '';
+                            const note = t[2]?.value.trim() || '';
+                            rows += `<tr><td class="border p-1 align-top">${lesson}</td><td class="border p-1">${activity}</td><td class="border p-1">${note}</td></tr>`;
+                        });
+                        if (rows) {
+                            stepContent += `<div class="mb-4"><h4 class="text-lg font-semibold text-gray-800 mb-2">${phaseTitle || '프로젝트 단계'}</h4><table class="w-full border-collapse mb-2"><thead><tr class="bg-gray-100"><th class="border p-1 w-1/6">학습차시</th><th class="border p-1 w-4/6">활동 내용</th><th class="border p-1 w-1/6">비고</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+                        }
+                    });
                 } else if (step.id === 'step5') {
                     const rubricTable = document.querySelector('#step5-container .rubric-table');
                     if (rubricTable) { stepContent = `<table>${rubricTable.innerHTML}</table>`.replace(/<input value="([^"]*)"[^>]*>/g, '$1').replace(/<textarea[^>]*>([^<]*)<\/textarea>/g, '$1').replace(/<button[^>]*>.*?<\/button>/g, ''); }
